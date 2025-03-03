@@ -1,0 +1,28 @@
+name: 'setup dependency'
+description: 'installing the dependencies that are required'
+inputs:
+  framework-type: 
+    description: ' type of framework used to build the code '
+    required: false
+    type: string
+  dependency-version:
+    description: 'settin up dependency version'
+    required: true
+    type: string
+  working-directory:
+    description: 'working directory for App code'
+    required: false
+    type: string
+runs:
+ using: 'composite'
+ steps:
+   - name: Setup NuGet.exe
+     if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+     uses: nuget/setup-nuget@v2
+     with:
+       nuget-version: ${{ inputs.dependency-version }}
+   - name: Install npm
+     if: ${{ inputs.framework-type == 'angular' }}
+     run: npm install
+     shell: bash
+     working-directory: ${{ inputs.working-directory }}
