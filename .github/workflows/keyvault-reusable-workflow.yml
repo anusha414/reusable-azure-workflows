@@ -1,0 +1,62 @@
+name: reusable workflow to add keyvault secrets
+on: 
+  workflow_call:
+    secrets:
+      client-id:
+      subscription-id:
+      tenant-id:
+      secret_value:
+    inputs:
+        secret_name:
+            description: 'specify the name for the secret'
+            required: false
+            type: string
+        keyvault_name:
+            description: 'specify the name of the keyvault'
+            required: false
+            type: string
+        disable_specific_version:
+            description: 'disable all the old versions of the secret'
+            required: false
+            type: boolean
+            default: false
+        disable_previous_versions:
+            description: 'disable only the previous version of the secret'
+            required: false
+            type: boolean
+            default: false
+        version_id:
+            description: 'specify the version id to disable'
+            required: false
+            type: string
+        disable_version_only:
+            description: 'disable the specified version of the secret'
+            required: false
+            type: boolean
+            default: false
+        
+jobs:
+  sync-secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+     - name: checkout 
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/checkout@main
+
+     - name: login to azure
+       uses: BHGitOps/action-azlogin@v1
+       with:
+           client-id: ${{ secrets.client-id}}
+           tenant-id: ${{ secrets.tenant-id}}
+           subscription-id: ${{ secrets.subscription-id}}
+
+     - name: Set or Update Secrets in Azure KeyVault
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/keyvault-secrets@main
+       with:
+        secret_value: ${{ secrets.secret_value}}
+        secret_name: ${{ inputs.secret_name}}
+        keyvault_name: ${{ inputs.keyvault_name }}
+        disable_specific_version: ${{ inputs.disable_specific_version }}
+        disable_previous_versions: ${{ inputs.disable_previous_versions }}
+        version_id: ${{ inputs.version_id }}
+        disable_version_only: ${{ inputs.disable_version_only }}
