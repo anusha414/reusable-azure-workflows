@@ -1,0 +1,33 @@
+name: build action
+description: 'build the source code'
+inputs:
+  framework-type: 
+    description: ' type of framework used to build the code '
+    required: false
+    type: string
+  working-directory:
+    description: 'working directory to create build'
+    required: true
+    type: string
+  configuration:
+    description: 'specify the configuration eg:- Release'
+    required: true
+    type: string
+  file-name-to-build:
+    description: solution or project file that will be built
+    required: false
+    type: string
+runs:
+  using: 'composite'       
+  steps:     
+    - name: Build dotnet application
+      if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+      run: dotnet build ${{ inputs.file-name-to-build }} --configuration ${{ inputs.configuration }}
+      shell: bash
+
+    - name: Build angular application
+      if: ${{ inputs.framework-type == 'angular' }}
+      run: npm run build:${{ inputs.configuration }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+  
