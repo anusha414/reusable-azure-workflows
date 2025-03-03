@@ -1,0 +1,14 @@
+name: publish action
+description: 'publish the source code' 
+inputs:
+  file-name-to-publish:
+    description: 'specific csproj to publish the project'
+    required: false
+    type: string
+runs:
+  using: 'composite'       
+  steps:     
+
+    - name: dotnet publish for zip      
+      run: dotnet publish ${{ inputs.file-name-to-publish }} --output output --no-restore
+      shell: bash
