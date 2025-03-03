@@ -1,0 +1,24 @@
+name: 'Download & extract artifact'
+description: to downlod & extract the build artifact'
+inputs: 
+  artifact-name:
+      description: 'artifact name'
+      required: true
+      type: string
+  framework-type: 
+        description: ' type of framework used to build and deploy code '
+        required: false
+        type: string
+runs:
+ using: 'composite'
+ steps:
+   - name: download artifact 
+     uses: actions/download-artifact@v4
+     with: 
+       name: ${{ inputs.artifact-name }}
+
+   - name: 'unzip the tar to get to raw files'
+     if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+     run: tar -xf output.tar
+     shell: bash
+     
