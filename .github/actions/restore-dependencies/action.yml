@@ -1,0 +1,28 @@
+name: restore dependencies action
+description: restore dependencies action for building the source code
+inputs:
+  framework-type: 
+    description: ' type of framework used to build the code '
+    required: false
+    type: string
+  file-name-to-restore:
+    description: 'specify a specific filename, examples sln/csproj files to restore. Useful when more than one exist in a single directory'
+    required: false
+    type: string
+  nuget-config-path:
+      description: 'path to the nuget config file'
+      required: false
+      type: string
+runs:
+  using: 'composite'       
+  steps:
+      
+    - name: restore nuget dependencies
+      if: ${{ (inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor') && inputs.nuget-config-path != ''   }}
+      run: dotnet restore ${{ inputs.file-name-to-restore }} --configfile ${{ inputs.nuget-config-path }} 
+      shell: bash 
+
+    - name: restore nuget dependencies
+      if: ${{ (inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor') && inputs.nuget-config-path == ''   }}
+      run: dotnet restore ${{ inputs.file-name-to-restore }} 
+      shell: bash 
