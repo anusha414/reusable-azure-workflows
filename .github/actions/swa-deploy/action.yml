@@ -1,0 +1,57 @@
+name: 'Deploy'
+description: 'deploy to static web app'
+inputs:
+  app-location:
+      description: 'provide the source code location'
+      required: true
+      type: string
+  output-location:
+      description: 'provide the output location'
+      required: false
+      type: string
+  skip-app-build:
+      description: 'set to false to execute the build'
+      required: false
+      type: boolean
+  cloud-app-name:
+      description: 'name of the cloud resource name, for example azure function name'
+      required: true
+      type: string
+  configuration:
+    description: 'specify the configuration eg:- qa,dev,prod'
+    required: true
+    type: string    
+  app-settings-path: 
+      description: 'path of the app setting file'
+      required: false
+      type: string
+  azure-resource-group:
+     description: 'resource group of the azure resource'
+     required: false
+     type: string
+
+runs:
+  using: 'composite'       
+  steps:
+   - name: Install Azure CLI and generate API token
+     uses: azure/cli@v2
+     with:
+        azcliversion: latest
+        inlineScript: |
+          token=$(az staticwebapp secrets list --name ${{ inputs.cloud-app-name }} --query "properties.apiKey" -o tsv)
+          echo "::add-mask::${token}"
+          echo "TOKEN=${token}" >> $GITHUB_ENV
+          if [ -e "${{ inputs.app-settings-path }}" ]; then
+            settings=$(jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' ${{ inputs.app-settings-path }})
+            az staticwebapp appsettings set --name ${{ inputs.cloud-app-name }} --resource-group ${{ inputs.azure-resource-group }} --setting-names $settings
+          fi 
+          
+   - name: deploy
+     uses: Azure/static-web-apps-deploy@v1
+     with:
+      azure_static_web_apps_api_token: ${{ env.TOKEN }} # secret containing api token for app
+      action: "upload"
+      app_location: ${{ inputs.app-location }}
+      skip_app_build: ${{ inputs.skip-app-build }}
+      output_location: ${{ inputs.output-location }}
+      app_build_command: npm run build:${{ inputs.configuration }}
