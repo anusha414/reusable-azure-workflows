@@ -1,0 +1,375 @@
+name: reusable workflow
+on: 
+  workflow_call:
+    secrets: 
+      client-id:
+      subscription-id:
+      tenant-id:
+      ADO_ARTIFACTS_BROWNFIELD:
+      active-client-id:
+      active-client-secret: 
+      active-registry-user:
+      active-registry-password:
+      secrets-json:
+    inputs:
+      framework-type: 
+        description: ' type of framework used to build and deploy code '
+        required: false
+        type: string
+      framework-version:
+        description: 'framework version to install'
+        required: false
+        type: string
+      dependency-version:
+        description: 'dependency package version to install'
+        required: false
+        type: string
+      working-directory:
+        description: 'working directory for App code'
+        required: false
+        type: string
+      file-name-to-build:
+        description: 'solution or project file to build for .net apps'
+        required: false
+        type: string
+      file-name-to-restore:
+        description: 'specific sln/csproj to restore if more than one exist in a directory'
+        required: false
+        type: string
+      file-name-to-package:
+        description: 'specific sln/csproj to package if more than one exist in a directory'
+        required: false
+        type: string
+      file-name-to-publish:
+        description: 'specific csproj to publish the project'
+        required: false
+        type: string
+      file-name-to-test:
+       description: 'specify specific sln/proj to test'
+       required: false
+       type: string
+      configuration:
+        description: 'specify the configuration eg:- Release'
+        required: false
+        type: string
+      build-artifacts:
+        description: 'directory where you want artifacts to be stored after build'
+        required: false
+        type: string
+      cloud-app-name:
+        description: 'name of the cloud resource name, for example azure function name'
+        required: false
+        type: string 
+      artifact-name:
+        description: 'artifact name'
+        required: false
+        type: string
+      app-location:
+        description: 'provide the source code location'
+        required: false
+        type: string
+      deployment-resource-type: 
+       description: ' type of resource to deploy '
+       required: true
+       type: string
+      skip-deploy-job:
+        description: 'skips a particular job'
+        required: true
+        type: boolean 
+        default: false
+      include-noname:
+        description: 'includes NoName scan job'
+        required: false
+        type: boolean 
+        default: false
+      skip-test:
+        description: 'skips a test action'
+        required: false
+        type: boolean 
+        default: true
+      skip-nuget-pack:
+        description: 'skips a nuget package action'
+        required: false
+        type: boolean 
+        default: true
+      output-location:
+        description: 'provide the output location'
+        required: false
+        type: string
+      skip-app-build:
+       description: 'set to false to execute the build'
+       required: false
+       type: boolean
+      deploy-runner-type:
+        description: 'self-hosted or ubuntu-latest'
+        required: true
+        type: string 
+        default: 'ubuntu-latest'
+      noname-runner-type:
+        description: 'self-hosted or ubuntu-latest for noname scan job'
+        required: false
+        type: string 
+        default: 'ubuntu-latest'
+      app-settings-path: 
+         description: 'path of the app setting file'
+         required: false
+         type: string
+      azure-resource-group:
+        description: 'resource group of the azure resource'
+        required: false
+        type: string 
+      deploy-environment:
+        description: 'deployment environment'
+        required: true
+        type: string
+      nuget-config-path:
+        description: 'path to the nuget config file'
+        required: false
+        type: string
+      service-name:
+        description: 'specify the APIM instance name'
+        required: false
+        type: string
+      api-path:
+        description: 'path which client uses to call api'
+        required: false
+        type: string
+      api-id:
+        description: 'specify the api-id of the api'
+        required: false
+        type: string
+      specification-format:
+        description: 'specifies the format of the API specification you are importing'
+        required: false
+        type: string
+      update-apim-definitions:
+        description: 'boolean variable to add/update apim definitions' 
+        required: false
+        type: boolean
+        default: false
+      path-to-active-config-file:
+        description: 'path to the active config file'
+        required: false
+        type: string
+      active-backend-uri:
+        description: 'active backend url'
+        required: false
+        type: string
+      active-config-file-dir:
+        description: 'active config file directory'
+        required: false
+        type: string
+      active-api-url:
+        description: ' active API URL'
+        required: false
+        type: string
+      active-test-group-id: 
+       description: 'active test group ID'
+       required: false
+       type: string
+      active-registry-url:
+        description: 'active registry URL'
+        required: false
+        type: string 
+      active-token-api-url:
+       description: 'active API URL to get API token'
+       required: false
+       type: string
+      include-super-linter:
+        description: 'boolean variable to enable/disable linting' 
+        required: false
+        type: boolean
+        default: false 
+      linter-filter-regex-include:
+        description: 'specifies the files and folders to be included in the linting'
+        required: false
+        type: string
+      linter-filter-regex-exclude:
+        description: 'specifies the files and folders to be excluded from linting'
+        required: false
+        type: string
+      linter-rules-config-path:
+          description: 'Config files path for various linters'
+          required: false
+          type: string
+      target-file:
+        description: 'target file we overwrite with corresponding environment secrets'
+        required: false
+        type: string
+      
+env:
+  NuGet_Brown_PAT: ${{ secrets.ADO_ARTIFACTS_BROWNFIELD }}
+  NuGetPackageSourceCredentials_azure: ${{ secrets.ADO_ARTIFACTS_BROWNFIELD }}
+  
+jobs:
+  
+  Build:  
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deploy-environment }}
+
+    steps:
+        
+        - name: checkout 
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/checkout@main
+          with:
+             include-super-linter: ${{ inputs.include-super-linter }}
+
+        - name: Super Linter Code Base
+          if: ${{ inputs.include-super-linter == true }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/super-linter@main
+          env:
+              FILTER_REGEX_INCLUDE: ${{ inputs.linter-filter-regex-include }}
+              FILTER_REGEX_EXCLUDE: ${{ inputs.linter-filter-regex-exclude}} 
+              LINTER_RULES_PATH: ${{ inputs.linter-rules-config-path }} 
+              VALIDATE_ALL_CODEBASE: false 
+              MULTI_STATUS: false
+    
+        - name: security scan
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/security-scan@main
+    
+        - name: setup framework
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/setup-framework@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            framework-version: ${{ inputs.framework-version }}
+    
+        - name: setup dependency manager
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/setup-dependency@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            dependency-version: ${{ inputs.dependency-version }}
+            working-directory: ${{ inputs.working-directory }}
+    
+        - name: restore dependencies
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/restore-dependencies@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            file-name-to-restore: ${{ inputs.file-name-to-restore }}
+            nuget-config-path: ${{ inputs.nuget-config-path}}
+
+        - name: clean the artifacts
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/clean@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            working-directory: ${{ inputs.working-directory}}
+            file-name-to-build: ${{ inputs.file-name-to-build }}
+
+        - name: Json transform
+          if: ${{ inputs.target-file != '' }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/json-transform@main
+          with: 
+            target-file: ${{ inputs.target-file }}
+            secrets-json: ${{ secrets.secrets-json }}
+
+        - name: build
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/build@main
+          with:
+            framework-type: ${{ inputs.framework-type }} 
+            working-directory: ${{ inputs.working-directory }}
+            file-name-to-build: ${{ inputs.file-name-to-build }}
+            configuration: ${{ inputs.configuration }}
+            
+
+        - name: publish
+          if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/publish@main
+          with: 
+            file-name-to-publish: ${{ inputs.file-name-to-publish}}
+    
+        - name: test
+          if: ${{ inputs.skip-test == false }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/test@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            working-directory: ${{ inputs.working-directory }}
+            file-name-to-test: ${{ inputs.file-name-to-test }}
+    
+        - name: nuget-pack
+          if: ${{ inputs.skip-nuget-pack == false }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/nuget-pack@main
+          with:
+            framework-type: ${{ inputs.framework-type }}
+            configuration: ${{ inputs.configuration }}
+            file-name-to-package: ${{ inputs.file-name-to-package }}
+    
+        - name: upload artifacts
+          if: ${{ inputs.framework-type != 'html' }}
+          uses: BHGitOps/new-code-reusable-workflows/.github/actions/upload-artifacts@main
+          with: 
+            build-artifacts: ${{ inputs.build-artifacts}}
+            artifact-name: ${{ inputs.artifact-name }}
+            framework-type: ${{ inputs.framework-type }}
+
+
+  Deploy:    
+    needs: ["Build"]
+    runs-on: ${{ inputs.deploy-runner-type }}
+    environment: ${{ inputs.deploy-environment }}
+    if: ${{ inputs.skip-deploy-job == false }}
+    steps:    
+    
+     - name: checkout 
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/checkout@main
+
+     - name: download-artifact 
+       if: ${{ inputs.framework-type != 'html' }} 
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/download-artifact@main
+       with: 
+        artifact-name: ${{ inputs.artifact-name }}
+        framework-type: ${{ inputs.framework-type }}
+
+     - name: login to azure
+       uses: BHGitOps/action-azlogin@v1
+       with:
+        client-id: ${{ secrets.client-id}}
+        tenant-id: ${{ secrets.tenant-id}}
+        subscription-id: ${{ secrets.subscription-id}}
+
+     - name: deploy
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/deploy@main
+       with: 
+         cloud-app-name: ${{ inputs.cloud-app-name }}
+         deployment-resource-type: ${{ inputs.deployment-resource-type }}
+         app-location: ${{ inputs.app-location }}
+         output-location: ${{ inputs.output-location }}
+         skip-app-build: ${{ inputs.skip-app-build }}
+         app-settings-path: ${{ inputs.app-settings-path }}
+         azure-resource-group: ${{ inputs.azure-resource-group }}
+         configuration: ${{ inputs.configuration }}
+
+
+     - name: deploy swagger
+       if: ${{ inputs.update-apim-definitions == true }}
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-definitions@main
+       with: 
+           azure-resource-group: ${{ inputs.azure-resource-group }}
+           cloud-app-name: ${{ inputs.cloud-app-name }}
+           service-name: ${{ inputs.service-name }}
+           api-path: ${{ inputs.api-path }}
+           api-id: ${{ inputs.api-id }}
+           specification-format: ${{ inputs.specification-format }}
+
+
+  NoName_Scan: 
+    needs: ["Build","Deploy"]
+    runs-on: ${{ inputs.noname-runner-type }}
+    if: ${{ inputs.include-noname == true }}
+    steps:    
+    
+     - name: checkout 
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/checkout@main
+     
+     - name: no name scan
+       uses: BHGitOps/new-code-reusable-workflows/.github/actions/no-name-scan@main
+       with: 
+         active-registry-url: ${{ inputs.active-registry-url }}
+         active-registry-user: ${{ secrets.active-registry-user }}
+         active-registry-password: ${{ secrets.active-registry-password }}
+         path-to-active-config-file: ${{ inputs.path-to-active-config-file }}
+         active-backend-uri: ${{ inputs.active-backend-uri }}
+         active-config-file-dir: ${{ inputs.active-config-file-dir }}
+         active-api-url: ${{ inputs.active-api-url }}
+         active-client-id: ${{ secrets.active-client-id }}
+         active-client-secret: ${{ secrets.active-client-secret }}
+         active-test-group-id: ${{ inputs.active-test-group-id}}
+         active-token-api-url: ${{ inputs.active-token-api-url }}
