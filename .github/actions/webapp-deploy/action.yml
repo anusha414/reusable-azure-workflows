@@ -1,0 +1,36 @@
+name: 'Webapp Server Deploy'
+description: 'deploy to azure web app'
+inputs:
+  cloud-app-name:
+      description: 'name of the cloud resource name, for example azure webapp name'
+      required: true
+      type: string
+  app-settings-path: 
+      description: 'path of the app settings file'
+      required: false
+      type: string
+  azure-resource-group:
+     description: 'resource group of the azure resource'
+     required: false
+     type: string
+runs:
+ using: 'composite'
+ steps:
+   - name: Install Azure CLI and add/update webapp settings
+     if: ${{ inputs.app-settings-path != '' }}
+     uses: azure/cli@v2
+     with:
+        azcliversion: latest
+        inlineScript: |
+          if [ -e "${{ inputs.app-settings-path }}" ]; then
+            az webapp config appsettings set --name ${{ inputs.cloud-app-name }} --resource-group ${{ inputs.azure-resource-group }} --settings @${{ inputs.app-settings-path }}
+          else
+              echo "The path does not exist: ${{ inputs.app-settings-path }}"
+              exit 1
+          fi
+
+   - name: deploy 
+     uses: azure/webapps-deploy@v2
+     with:
+        app-name: ${{ inputs.cloud-app-name }}
+        package: output/
