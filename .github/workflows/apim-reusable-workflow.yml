@@ -1,0 +1,117 @@
+name: reusable workflow to deploy Policies
+on: 
+  workflow_call:
+    secrets:
+      client-id:
+      subscription-id:
+      tenant-id:
+    inputs:
+        azure-resource-group:
+            description: 'resource group of the azure resource'
+            required: false
+            type: string 
+        deploy-apim-definitions:
+           description: 'boolean variable to deploy apim definitions' 
+           required: false
+           type: boolean
+           default: false
+        specification-path: 
+            description: 'path of the swagger file'
+            required: false
+            type: string
+        apim-resource-name:
+             description: 'service name of the APIM'
+             required: false
+             type: string
+        api-path: 
+             description: 'API path that clients use to call the API'
+             required: false
+             type: string 
+        api-id:
+            description: 'unique identifier for the API'
+            required: false
+            type: string 
+        policy-source-file:
+            description: 'policy source file to apply policies to API'
+            required: true
+            type: string 
+        operation-id:
+            description: 'apim operation to apply policy to'
+            required: false
+            type: string
+        policy-scope:
+            description: 'apim policy scope to apply policy to'
+            required: true
+            type: string
+        workspace-id:
+          description: 'specify the workspace ID'
+          required: false
+          type: string
+        product-id:
+          description: 'specify the product ID'
+          required: false
+          type: string           
+
+jobs:
+
+   apim-policy-deploy:  
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout 
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/checkout@main
+
+      - name: login to azure
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/azpslogin@main
+        with:
+            client-id: ${{ secrets.client-id}}
+            tenant-id: ${{ secrets.tenant-id}}
+            subscription-id: ${{ secrets.subscription-id}}
+
+      - name: Install Az Module
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/install-az-module@main
+
+      - name: Apply Global Policies 
+        if: ${{ inputs.policy-scope == 'global-level' }}
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-global-policy-deploy@main
+        with:
+            azure-resource-group: ${{ inputs.azure-resource-group }}
+            apim-resource-name: ${{ inputs.apim-resource-name }}
+            policy-source-file: ${{ inputs.policy-source-file }}   
+            
+
+      - name: Apply Workspace Policies 
+        if: ${{ inputs.policy-scope == 'workspace-level' }}
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-workspace-policy-deploy@main
+        with:
+            azure-resource-group: ${{ inputs.azure-resource-group }}
+            apim-resource-name: ${{ inputs.apim-resource-name }}
+            workspace-id: ${{ inputs.workspace-id }}
+            policy-source-file: ${{ inputs.policy-source-file }}   
+                   
+      - name: Apply Product Policies
+        if: ${{ inputs.policy-scope == 'product-level' }}
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-product-policy-deploy@main
+        with:
+            azure-resource-group: ${{ inputs.azure-resource-group }}
+            apim-resource-name: ${{ inputs.apim-resource-name }}
+            product-id: ${{ inputs.product-id }}
+            policy-source-file: ${{ inputs.policy-source-file }}
+
+      - name: Apply API Policies
+        if: ${{ inputs.policy-scope == 'api-level' }}
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-api-policy-deploy@main
+        with:
+            azure-resource-group: ${{ inputs.azure-resource-group }}
+            apim-resource-name: ${{ inputs.apim-resource-name }}
+            api-id: ${{ inputs.api-id }}
+            policy-source-file: ${{ inputs.policy-source-file }}
+
+      - name: Apply operational Policies
+        if: ${{ inputs.policy-scope == 'operation-level' }}
+        uses: BHGitOps/new-code-reusable-workflows/.github/actions/apim-operation-policy-deploy@main
+        with:
+            azure-resource-group: ${{ inputs.azure-resource-group }}
+            apim-resource-name: ${{ inputs.apim-resource-name }}
+            api-id: ${{ inputs.api-id }}
+            policy-source-file: ${{ inputs.policy-source-file }}   
+            operation-id: ${{ inputs.operation-id }}      
