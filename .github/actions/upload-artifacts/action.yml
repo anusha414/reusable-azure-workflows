@@ -1,0 +1,37 @@
+name: 'Upload Artifacts'
+description: 'To upload artifacts'
+inputs:
+  build-artifacts:
+    description: 'directory to upload artifact package'
+    required: true
+    type: string
+  artifact-name:
+      description: 'artifact name'
+      required: true
+      type: string
+  framework-type: 
+        description: ' type of framework used to build and deploy code '
+        required: false
+        type: string
+runs:
+ using: 'composite'
+ steps:
+    - name: 'Tar files to preserve file perms'
+      if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+      run: tar -cvf output.tar output/
+      shell: bash
+     
+    - name: upload-artifacts
+      if: ${{ inputs.framework-type == 'dotnet' || inputs.framework-type == 'blazor' }}
+      uses: actions/upload-artifact@v4
+      with:
+          name: ${{ inputs.artifact-name }}
+          path: output.tar
+
+    - name: upload-artifacts
+      if: ${{ inputs.framework-type != 'dotnet' && inputs.framework-type != 'blazor' }}
+      uses: actions/upload-artifact@v4
+      with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.build-artifacts }}
+          
