@@ -1,0 +1,67 @@
+name: 'Deploy'
+description: 'deploy action'
+inputs:
+  cloud-app-name:
+      description: 'name of the cloud resource name, for example azure function name'
+      required: false
+      type: string 
+  app-location:
+      description: 'provide the source code location'
+      required: false
+      type: string
+  deployment-resource-type: 
+     description: 'type of resource to deploy'
+     required: true
+     type: string
+  output-location:
+      description: 'provide the output location'
+      required: false
+      type: string
+  skip-app-build:
+      description: 'set to false to execute the build'
+      required: false
+      type: boolean
+  app-settings-path: 
+      description: 'path of the app settings file'
+      required: false
+      type: string
+  azure-resource-group:
+     description: 'resource group of the azure resource'
+     required: false
+     type: string
+  configuration:
+    description: 'specify the configuration eg:- dev,qa,prod'
+    required: true
+    type: string
+
+runs:
+ using: 'composite'
+ steps:
+   - name: deploy to azure function app
+     if: ${{ inputs.deployment-resource-type == 'azure-function-app' }}
+     uses: BHGitOps/new-code-reusable-workflows/.github/actions/function-deploy@main
+     with:
+        cloud-app-name: ${{ inputs.cloud-app-name }}
+        app-settings-path: ${{ inputs.app-settings-path }}
+        azure-resource-group: ${{ inputs.azure-resource-group }}
+
+   - name: deploy to static web app
+     if: ${{ inputs.deployment-resource-type == 'static-web-app' }}
+     uses: BHGitOps/new-code-reusable-workflows/.github/actions/swa-deploy@main
+     with:
+      app-location: ${{ inputs.app-location }}
+      output-location: ${{ inputs.output-location }}
+      skip-app-build: ${{ inputs.skip-app-build }}
+      cloud-app-name: ${{ inputs.cloud-app-name }}
+      app-settings-path: ${{ inputs.app-settings-path }}
+      azure-resource-group: ${{ inputs.azure-resource-group }}
+      configuration: ${{ inputs.configuration }}
+
+
+   - name: deploy to azure web app
+     if: ${{ inputs.deployment-resource-type == 'azure-web-app' }}
+     uses: BHGitOps/new-code-reusable-workflows/.github/actions/webapp-deploy@main
+     with:
+        cloud-app-name: ${{ inputs.cloud-app-name }}
+        app-settings-path: ${{ inputs.app-settings-path }}
+        azure-resource-group: ${{ inputs.azure-resource-group }}
